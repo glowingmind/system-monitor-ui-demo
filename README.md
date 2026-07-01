@@ -1,121 +1,74 @@
 # System Monitor UI Demo
 
-The idea of this project is to create a simple system monitor UI that displays real-time information about the system's performance, such as CPU usage, memory usage, disk usage, and network activity. The UI will be built using modern web frameworks Express and Angular. We will use TypeScripts for both API and UI apps. It will take advantage of web tokens to provide the real-time updates. It will use the Node's `child_process` to run `btop` and send stats to the browser. Here are the snippets of the code that should be used.
+A simple system monitor UI that displays real-time performance metrics (CPU, memory, disk, network) using `btop` streamed via WebSockets.
 
-```typescript
-// server.ts
-import * as express from 'express';
-import * as http from 'http';
-import * as socketIo from 'socket.io';
-import { spawn } from 'child_process';
+The project is split into a standalone backend and a standalone frontend.
 
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+## Project Structure
 
-let btopProcess;
-
-io.on('connection', (socket) => {
-  console.log('New client connected');
-
-  // Listen for 'start-btop' event to start btop
-  socket.on('start-btop', () => {
-    if (!btopProcess) {
-      btopProcess = spawn('btop');
-      btopProcess.stdout.on('data', (data) => {
-        io.emit('btop-output', data.toString());
-      });
-      btopProcess.stderr.on('data', (data) => {
-        io.emit('btop-error', data.toString());
-      });
-    }
-  });
-
-  // Listen for 'stop-btop' event to stop btop
-  socket.on('stop-btop', () => {
-    if (btopProcess) {
-      btopProcess.kill();
-      btopProcess = null;
-    }
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-    if (btopProcess) {
-      btopProcess.kill();
-      btopProcess = null;
-    }
-  });
-});
-
-server.listen(3000, () => {
-  console.log('Server is running on port 3000');
-});
+```
+system-monitor-ui-demo/
+├── README.md
+├── server/             # Express & Socket.io Backend
+│   ├── server.ts
+│   ├── package.json
+│   └── tsconfig.json
+└── client/             # Angular Frontend
+    ├── src/
+    ├── package.json
+    └── tsconfig.json
 ```
 
-```typescript
-// btop.service.ts
-import { Injectable } from '@angular/core';
-import * as io from 'socket.io-client';
-import * as child_process from 'child_process';
+## Technologies
 
-@Injectable({
-  providedIn: 'root'
-})
-export class BtopService {
-  private socket;
-  private btopProcess;
+- **Backend**: Node.js, Express, Socket.io, `node-pty` (to run `btop` in a pseudo-terminal).
+- **Frontend**: Angular, `@xterm/xterm` (to render the terminal output), Socket.io-client.
 
-  constructor() {
-    // Initialize WebSocket connection
-    this.socket = io('http://localhost:3000');
+## Getting Started
 
-    // Listen for btop output
-    this.socket.on('btop-output', (data) => {
-      console.log(data);
-      // Handle btop output data here, e.g., emit to a behavior subject or store it in state management.
-    });
-  }
+### Prerequisites
 
-  startBtop() {
-    if (!this.btopProcess) {
-      this.btopProcess = child_process.spawn('btop');
+- `node` and `pnpm` installed.
+- `btop` installed and available in your system's PATH.
 
-      this.btopProcess.stdout.on('data', (data: Buffer) => {
-        const output = data.toString();
-        this.socket.emit('btop-output', output);
-      });
+### Installation
 
-      this.btopProcess.stderr.on('data', (data: Buffer) => {
-        const errorOutput = data.toString();
-        this.socket.emit('btop-error', errorOutput);
-      });
-    }
-  }
+1. Clone the repository.
+2. Install dependencies for both parts:
 
-  stopBtop() {
-    if (this.btopProcess) {
-      this.btopProcess.kill();
-      this.btopProcess = null;
-    }
-  }
-}
+```bash
+# Backend
+cd server
+pnpm install
+
+# Frontend
+cd ../client
+pnpm install
 ```
 
-```typescript
-// btop.component.ts
-import { Component, OnInit } from '@angular/core';
-import { BtopService } from '../btop.service';
+### Running the Application
 
-@Component({
-  selector: 'app-btop',
-  template: `
-    <div>
-      <button (click)="startBtop()">Start btop</button>
-      <button (click)="stopBtop()">Stop btop</button>
-      <pre>{{ output }}</pre>
-    </div>
-  `,
+1. **Start the Backend**:
+   ```bash
+   cd server
+   pnpm run build
+   pnpm start
+   ```
+   The server will run on `http://localhost:3000`.
+
+2. **Start the Frontend**:
+   ```bash
+   cd client
+   pnpm start
+   ```
+   The UI will be available at `http://localhost:4200`.
+
+### Features
+
+- Real-time `btop` terminal streaming to the browser.
+- Interactive terminal resizing support.
+- Automatic process cleanup when clients disconnect.
+
 })
 export class BtopComponent implements OnInit {
   output = '';

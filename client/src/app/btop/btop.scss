@@ -1,0 +1,21 @@
+/* src/app/btop/btop.component.scss */
+.terminal-container {
+  display: flex;
+  flex-direction: column;
+  height: 90vh;
+  padding: 1rem;
+
+  .terminal {
+    flex: 1;
+  }
+}
+
+.controls-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.controls-container button {
+  margin: 0 0.5rem;
+}
